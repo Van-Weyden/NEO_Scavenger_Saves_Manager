@@ -8,6 +8,8 @@ typedef QList<QFileInfo> QFileInfoList;
 
 class SavesModel : public QAbstractTableModel
 {
+	Q_OBJECT
+
 public:
 	static constexpr const char *SavesExtension = ".sol";
 
@@ -31,7 +33,7 @@ public:
 	bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
 	bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
 	bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
-							  const QModelIndex &destinationParent, int destinationChild) override;
+				  const QModelIndex &destinationParent, int destinationChild) override;
 
 
 private:

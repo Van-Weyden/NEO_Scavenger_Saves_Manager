@@ -59,7 +59,7 @@ void SavesModel::fill(const QFileInfoList &fileInfoList)
 bool SavesModel::insertRow(int row, const QFileInfo &fileInfo)
 {
 	if (row > -1 && row <= rowCount()) {
-		beginInsertRows(QModelIndex(), row, row + 1);
+		beginInsertRows(QModelIndex(), row, row);
 		m_savesInfo.insert(row, SaveInfo(fileInfo));
 		endInsertRows();
 
