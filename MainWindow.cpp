@@ -1,8 +1,11 @@
 #include <QDateTime>
 #include <QDir>
+#include <QDirIterator>
 #include <QCollator>
 #include <QFile>
+#include <QMessageBox>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTranslator>
 
 #include "SavesModel.h"
@@ -58,6 +61,9 @@ MainWindow::MainWindow(QWidget *parent)
 	m_model = new SavesModel(this);
 	ui->tableView_saves->setModel(m_model);
 
+	connect(ui->pushButton_searchGameDataFolderPath, &QPushButton::clicked,
+			this, &MainWindow::searchGameDataFolderPath);
+
 	connect(ui->tableView_saves->selectionModel(), &QItemSelectionModel::currentRowChanged,
 			this, &MainWindow::onCurrentRowChanged);
 	connect(ui->pushButton_restoreSelectedSave, &QPushButton::clicked,
@@ -75,8 +81,12 @@ MainWindow::MainWindow(QWidget *parent)
 			this, &MainWindow::restoreLastQuickSave);
 
 	readSettings();
-	scanSaves();
 
+	if (ui->lineEdit_gameDataFolderPath->text().isEmpty()) {
+		searchGameDataFolderPath();
+	} else {
+		scanSaves();
+	}
 	//FIXME: remove line below after translation finishing
 	m_lang = "en_US";
 }
@@ -181,6 +191,38 @@ bool MainWindow::backupCurrentSave()
 	return backupSave(ui->lineEdit_backupCurrentSave->text());
 }
 
+void MainWindow::searchGameDataFolderPath()
+{
+	QString gameDataPath;
+	QDir appDataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+	appDataDir.cdUp();
+
+	QDirIterator it(appDataDir.path() + "/Macromedia/Flash Player/#SharedObjects",
+					QDir::Dirs | QDir::NoDotAndDotDot,
+					QDirIterator::Subdirectories
+	);
+
+	while (it.hasNext()) {
+		it.next();
+		if (it.fileName() == "NEOScavenger.exe") {
+			gameDataPath = it.filePath() + '/';
+			break;
+		}
+	}
+
+	if (gameDataPath.isEmpty()) {
+		QMessageBox::critical(
+					this,
+					tr("Failed to find saves data folder"),
+					tr("Failed to find saves data folder!\n"
+					   "Specify the location of the save folder manually.\n"
+					   "You also may try start the game, exit from it and then repeat the search.")
+		);
+	} else {
+		ui->lineEdit_gameDataFolderPath->setText(gameDataPath);
+	}
+}
+
 void MainWindow::setOriginSaveCheckInterval(const int interval)
 {
 	if (interval > 0) {
@@ -236,7 +278,6 @@ void MainWindow::checkOriginSave()
 {
 	int autosavesCount = ui->spinBox_autosavesCount->value();
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
 
 	if (autosavesCount > 0 && !gameDataFolderPath.isEmpty()) {
 		QByteArray originSaveChecksum = fileChecksum(gameDataFolderPath + GameSaveFileName);

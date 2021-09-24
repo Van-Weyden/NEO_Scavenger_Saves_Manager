@@ -59,6 +59,7 @@ public slots:
 	bool backupCurrentSave();
 	void restoreSelectedSave();
 	void deleteSelectedSave();
+	void searchGameDataFolderPath();
 	void setOriginSaveCheckInterval(const int interval);
 
 protected:
