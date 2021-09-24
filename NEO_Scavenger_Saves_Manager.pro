@@ -22,6 +22,10 @@ FORMS += \
 
 RC_FILE = icon.rc
 
+RESOURCES = resources.qrc
+
+TRANSLATIONS += lang_ru.ts
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin

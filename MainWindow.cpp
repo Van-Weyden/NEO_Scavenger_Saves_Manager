@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
 			this, &MainWindow::searchGameDataFolderPath);
 
 	connect(ui->tableView_saves->selectionModel(), &QItemSelectionModel::currentRowChanged,
-			this, &MainWindow::onCurrentRowChanged);
+			this, &MainWindow::onSavesModelCurrentChanged);
 	connect(ui->pushButton_restoreSelectedSave, &QPushButton::clicked,
 			this, &MainWindow::restoreSelectedSave);
 	connect(ui->pushButton_deleteSelectedSave, &QPushButton::clicked,
@@ -80,6 +80,11 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->pushButton_restoreLastQuicksave, &QPushButton::clicked,
 			this, &MainWindow::restoreLastQuickSave);
 
+	connect(ui->engLangButton, &QPushButton::clicked,
+			this, &MainWindow::setEnglishLanguage);
+	connect(ui->rusLangButton, &QPushButton::clicked,
+			this, &MainWindow::setRussianLanguage);
+
 	readSettings();
 
 	if (ui->lineEdit_gameDataFolderPath->text().isEmpty()) {
@@ -87,8 +92,6 @@ MainWindow::MainWindow(QWidget *parent)
 	} else {
 		scanSaves();
 	}
-	//FIXME: remove line below after translation finishing
-	m_lang = "en_US";
 }
 
 MainWindow::~MainWindow()
@@ -153,11 +156,14 @@ void MainWindow::restoreSave(const QString &backupSaveName)
 
 bool MainWindow::setLanguage(const QString &lang)
 {
-	m_lang = lang;
-	bool isTranslationLoaded = m_translator->load(QString(":/lang/lang_") + m_lang, ":/lang/");
-	QApplication::installTranslator(m_translator);
-	m_qtTranslator->load(QString(":/lang/qtbase_") + m_lang, ":/lang/");
-	QApplication::installTranslator(m_qtTranslator);
+	bool isTranslationLoaded = m_translator->load(QString(":/lang/lang_") + lang, ":/lang/");
+
+	if (isTranslationLoaded) {
+		m_lang = lang;
+		QApplication::installTranslator(m_translator);
+		m_qtTranslator->load(QString(":/lang/qtbase_") + m_lang, ":/lang/");
+		QApplication::installTranslator(m_qtTranslator);
+	}
 
 	return isTranslationLoaded;
 }
@@ -220,6 +226,7 @@ void MainWindow::searchGameDataFolderPath()
 		);
 	} else {
 		ui->lineEdit_gameDataFolderPath->setText(gameDataPath);
+		scanSaves();
 	}
 }
 
@@ -257,6 +264,15 @@ void MainWindow::deleteSelectedSave()
 
 //protected:
 
+void MainWindow::changeEvent(QEvent *event)
+{
+   if (event->type() == QEvent::LanguageChange) {
+		ui->retranslateUi(this);
+   } else {
+		QMainWindow::changeEvent(event);
+   }
+}
+
 void MainWindow::timerEvent(QTimerEvent *event)
 {
 	checkOriginSave();
@@ -265,7 +281,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 //private slots:
 
-void MainWindow::onCurrentRowChanged(const QModelIndex &currentRowIndex)
+void MainWindow::onSavesModelCurrentChanged(const QModelIndex &currentRowIndex)
 {
 	if (currentRowIndex.isValid()) {
 		ui->lineEdit_backupCurrentSave->setText(m_model->data(m_model->index(currentRowIndex.row(), 0)).toString());
@@ -336,12 +352,7 @@ void MainWindow::readSettings()
 	}
 
 	if (m_lang.isEmpty()) {
-		if (m_translator->load(QString(":/lang/lang_") + QLocale::system().name(), ":/lang/")) {
-			QApplication::installTranslator(m_translator);
-			m_qtTranslator->load(QString(":/lang/qtbase_") + QLocale::system().name(), ":/lang/");
-			QApplication::installTranslator(m_qtTranslator);
-			m_lang = QLocale::system().name();
-		} else {
+		if (!setLanguage(QLocale::system().name())) {
 			m_lang = "en_US";
 		}
 	} else {

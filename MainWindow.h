@@ -62,11 +62,15 @@ public slots:
 	void searchGameDataFolderPath();
 	void setOriginSaveCheckInterval(const int interval);
 
+	void setEnglishLanguage(); //inline
+	void setRussianLanguage(); //inline
+
 protected:
+	void changeEvent(QEvent *event) override;
 	void timerEvent(QTimerEvent *event) override;
 
 private slots:
-	void onCurrentRowChanged(const QModelIndex &currentRowIndex);
+	void onSavesModelCurrentChanged(const QModelIndex &currentRowIndex);
 
 private:
 	void checkOriginSave();
@@ -88,4 +92,17 @@ private:
 
 	SavesModel *m_model = nullptr;
 };
+
+//public:
+
+inline void MainWindow::setEnglishLanguage()
+{
+	setLanguage("en_US");
+}
+
+inline void MainWindow::setRussianLanguage()
+{
+	setLanguage("ru_RU");
+}
+
 #endif // MAINWINDOW_H
