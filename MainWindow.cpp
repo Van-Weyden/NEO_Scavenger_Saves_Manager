@@ -1,8 +1,11 @@
 #include <QDateTime>
 #include <QDir>
+#include <QDirIterator>
 #include <QCollator>
 #include <QFile>
+#include <QMessageBox>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTranslator>
 
 #include "SavesModel.h"
@@ -58,8 +61,11 @@ MainWindow::MainWindow(QWidget *parent)
 	m_model = new SavesModel(this);
 	ui->tableView_saves->setModel(m_model);
 
+	connect(ui->pushButton_searchGameDataFolderPath, &QPushButton::clicked,
+			this, &MainWindow::searchGameDataFolderPath);
+
 	connect(ui->tableView_saves->selectionModel(), &QItemSelectionModel::currentRowChanged,
-			this, &MainWindow::onCurrentRowChanged);
+			this, &MainWindow::onSavesModelCurrentChanged);
 	connect(ui->pushButton_restoreSelectedSave, &QPushButton::clicked,
 			this, &MainWindow::restoreSelectedSave);
 	connect(ui->pushButton_deleteSelectedSave, &QPushButton::clicked,
@@ -74,11 +80,21 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->pushButton_restoreLastQuicksave, &QPushButton::clicked,
 			this, &MainWindow::restoreLastQuickSave);
 
-	readSettings();
-	scanSaves();
+	connect(ui->engLangButton, &QPushButton::clicked,
+			this, &MainWindow::setEnglishLanguage);
+	connect(ui->rusLangButton, &QPushButton::clicked,
+			this, &MainWindow::setRussianLanguage);
 
-	//FIXME: remove line below after translation finishing
-	m_lang = "en_US";
+	readSettings();
+
+	if (ui->lineEdit_gameDataFolderPath->text().isEmpty()) {
+		searchGameDataFolderPath();
+	} else {
+		scanSaves();
+	}
+
+	ui->tableView_saves->horizontalHeader()->setSortIndicator(1, Qt::DescendingOrder);
+	ui->tableView_saves->setSortingEnabled(true);
 }
 
 MainWindow::~MainWindow()
@@ -117,7 +133,7 @@ bool MainWindow::backupSave(const QString &backupSaveName)
 		int index = m_model->indexOf(backupSaveName);
 		if (index != -1) {
 			m_model->moveRow(QModelIndex(), index, QModelIndex(), 0);
-			m_model->setData(m_model->index(0, 1), QFileInfo(backupSavePath).lastModified());
+			m_model->setData(0, QFileInfo(backupSavePath));
 		} else {
 			m_model->insertRow(0, QFileInfo(backupSavePath));
 		}
@@ -143,11 +159,14 @@ void MainWindow::restoreSave(const QString &backupSaveName)
 
 bool MainWindow::setLanguage(const QString &lang)
 {
-	m_lang = lang;
-	bool isTranslationLoaded = m_translator->load(QString(":/lang/lang_") + m_lang, ":/lang/");
-	QApplication::installTranslator(m_translator);
-	m_qtTranslator->load(QString(":/lang/qtbase_") + m_lang, ":/lang/");
-	QApplication::installTranslator(m_qtTranslator);
+	bool isTranslationLoaded = m_translator->load(QString(":/lang/lang_") + lang, ":/lang/");
+
+	if (isTranslationLoaded) {
+		m_lang = lang;
+		QApplication::installTranslator(m_translator);
+		m_qtTranslator->load(QString(":/lang/qtbase_") + m_lang, ":/lang/");
+		QApplication::installTranslator(m_qtTranslator);
+	}
 
 	return isTranslationLoaded;
 }
@@ -179,6 +198,39 @@ void MainWindow::restoreLastQuickSave()
 bool MainWindow::backupCurrentSave()
 {
 	return backupSave(ui->lineEdit_backupCurrentSave->text());
+}
+
+void MainWindow::searchGameDataFolderPath()
+{
+	QString gameDataPath;
+	QDir appDataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+	appDataDir.cdUp();
+
+	QDirIterator it(appDataDir.path() + "/Macromedia/Flash Player/#SharedObjects",
+					QDir::Dirs | QDir::NoDotAndDotDot,
+					QDirIterator::Subdirectories
+	);
+
+	while (it.hasNext()) {
+		it.next();
+		if (it.fileName() == "NEOScavenger.exe") {
+			gameDataPath = it.filePath() + '/';
+			break;
+		}
+	}
+
+	if (gameDataPath.isEmpty()) {
+		QMessageBox::critical(
+					this,
+					tr("Failed to find saves data folder"),
+					tr("Failed to find saves data folder!\n"
+					   "Specify the location of the save folder manually.\n"
+					   "You also may try start the game, exit from it and then repeat the search.")
+		);
+	} else {
+		ui->lineEdit_gameDataFolderPath->setText(gameDataPath);
+		scanSaves();
+	}
 }
 
 void MainWindow::setOriginSaveCheckInterval(const int interval)
@@ -215,6 +267,15 @@ void MainWindow::deleteSelectedSave()
 
 //protected:
 
+void MainWindow::changeEvent(QEvent *event)
+{
+   if (event->type() == QEvent::LanguageChange) {
+		ui->retranslateUi(this);
+   } else {
+		QMainWindow::changeEvent(event);
+   }
+}
+
 void MainWindow::timerEvent(QTimerEvent *event)
 {
 	checkOriginSave();
@@ -223,7 +284,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 //private slots:
 
-void MainWindow::onCurrentRowChanged(const QModelIndex &currentRowIndex)
+void MainWindow::onSavesModelCurrentChanged(const QModelIndex &currentRowIndex)
 {
 	if (currentRowIndex.isValid()) {
 		ui->lineEdit_backupCurrentSave->setText(m_model->data(m_model->index(currentRowIndex.row(), 0)).toString());
@@ -236,7 +297,6 @@ void MainWindow::checkOriginSave()
 {
 	int autosavesCount = ui->spinBox_autosavesCount->value();
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
 
 	if (autosavesCount > 0 && !gameDataFolderPath.isEmpty()) {
 		QByteArray originSaveChecksum = fileChecksum(gameDataFolderPath + GameSaveFileName);
@@ -295,12 +355,7 @@ void MainWindow::readSettings()
 	}
 
 	if (m_lang.isEmpty()) {
-		if (m_translator->load(QString(":/lang/lang_") + QLocale::system().name(), ":/lang/")) {
-			QApplication::installTranslator(m_translator);
-			m_qtTranslator->load(QString(":/lang/qtbase_") + QLocale::system().name(), ":/lang/");
-			QApplication::installTranslator(m_qtTranslator);
-			m_lang = QLocale::system().name();
-		} else {
+		if (!setLanguage(QLocale::system().name())) {
 			m_lang = "en_US";
 		}
 	} else {

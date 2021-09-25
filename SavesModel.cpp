@@ -1,4 +1,6 @@
-#include <QDateTime>
+#include <algorithm>
+
+#include <QCollator>
 #include <QDir>
 #include <QFileInfoList>
 
@@ -8,7 +10,8 @@ SavesModel::SaveInfo::SaveInfo(const QFileInfo &fileInfo)
 {
 	name = fileInfo.completeBaseName();
 	path = fileInfo.absolutePath() + QDir::separator();
-	setLastModified(fileInfo.lastModified());
+	setBackuped(fileInfo.lastRead());
+	setCreated(fileInfo.lastModified());
 }
 
 void SavesModel::SaveInfo::rename(const QString name)
@@ -17,9 +20,16 @@ void SavesModel::SaveInfo::rename(const QString name)
 	this->name = name;
 }
 
-void SavesModel::SaveInfo::setLastModified(const QDateTime &dateTime)
+void SavesModel::SaveInfo::setBackuped(const QDateTime &dateTime)
 {
-	lastModified = dateTime.toString(Qt::DateFormat::SystemLocaleShortDate);
+	backupedDateTime = dateTime;
+	backupedString = dateTime.toString(Qt::DateFormat::SystemLocaleShortDate);
+}
+
+void SavesModel::SaveInfo::setCreated(const QDateTime &dateTime)
+{
+	createdDateTime = dateTime;
+	createdString = dateTime.toString(Qt::DateFormat::SystemLocaleShortDate);
 }
 
 SavesModel::SavesModel(QObject *parent) :
@@ -59,7 +69,7 @@ void SavesModel::fill(const QFileInfoList &fileInfoList)
 bool SavesModel::insertRow(int row, const QFileInfo &fileInfo)
 {
 	if (row > -1 && row <= rowCount()) {
-		beginInsertRows(QModelIndex(), row, row + 1);
+		beginInsertRows(QModelIndex(), row, row);
 		m_savesInfo.insert(row, SaveInfo(fileInfo));
 		endInsertRows();
 
@@ -67,6 +77,17 @@ bool SavesModel::insertRow(int row, const QFileInfo &fileInfo)
 	}
 
 	return false;
+}
+
+bool SavesModel::setData(int row, const QFileInfo &fileInfo)
+{
+	if (row < 0 && row >= m_savesInfo.count()) {
+		return false;
+	}
+
+	m_savesInfo[row] = fileInfo;
+	emit dataChanged(index(row, 0), index(row, columnCount()));
+	return true;
 }
 
 Qt::ItemFlags SavesModel::flags(const QModelIndex &index) const
@@ -94,7 +115,11 @@ QVariant SavesModel::data(const QModelIndex &index, int role) const
 				break;
 
 				case 1:
-					return m_savesInfo[index.row()].lastModified;
+					return m_savesInfo[index.row()].backupedString;
+				break;
+
+				case 2:
+					return m_savesInfo[index.row()].createdString;
 				break;
 
 				default:
@@ -126,9 +151,17 @@ bool SavesModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
 				case 1:
 					if (value.type() == QVariant::Type::DateTime) {
-						m_savesInfo[index.row()].setLastModified(value.toDateTime());
+						m_savesInfo[index.row()].setBackuped(value.toDateTime());
 					} else {
-						m_savesInfo[index.row()].lastModified = value.toString();
+						m_savesInfo[index.row()].backupedString = value.toString();
+					}
+				break;
+
+				case 2:
+					if (value.type() == QVariant::Type::DateTime) {
+						m_savesInfo[index.row()].setCreated(value.toDateTime());
+					} else {
+						m_savesInfo[index.row()].createdString = value.toString();
 					}
 				break;
 
@@ -150,13 +183,48 @@ bool SavesModel::setData(const QModelIndex &index, const QVariant &value, int ro
 	return isDataChanged;
 }
 
+void SavesModel::sort(int column, Qt::SortOrder order)
+{
+	emit layoutAboutToBeChanged();
+
+	switch (column) {
+		case 0: {
+			QCollator collator;
+			collator.setNumericMode(true);
+
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order, &collator](const SaveInfo &first, const SaveInfo &second) {
+				return (collator.compare(first.name, second.name) * (order == Qt::SortOrder::DescendingOrder ? 1 : -1) > 0);
+			});
+		}
+		break;
+
+		case 1:
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order](const SaveInfo &first, const SaveInfo &second){
+				return (first.backupedDateTime > second.backupedDateTime) ^ (order == Qt::SortOrder::AscendingOrder);
+			});
+		break;
+
+		case 2:
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order](const SaveInfo &first, const SaveInfo &second){
+				return (first.createdDateTime > second.createdDateTime) ^ (order == Qt::SortOrder::AscendingOrder);
+			});
+		break;
+	}
+
+	emit layoutChanged();
+}
+
 QVariant SavesModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
 	if (role == Qt::DisplayRole) {
 		if (orientation == Qt::Horizontal) {
 			switch (section) {
 				case 0:		return tr("Name");
-				case 1:		return tr("Last modify");
+				case 1:		return tr("Backuped");
+				case 2:		return tr("Created by game");
 				default:	break;
 			}
 		} else {
