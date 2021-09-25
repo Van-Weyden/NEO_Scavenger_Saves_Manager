@@ -130,7 +130,7 @@ bool MainWindow::backupSave(const QString &backupSaveName)
 		int index = m_model->indexOf(backupSaveName);
 		if (index != -1) {
 			m_model->moveRow(QModelIndex(), index, QModelIndex(), 0);
-			m_model->setData(m_model->index(0, 1), QFileInfo(backupSavePath).lastModified());
+			m_model->setData(0, QFileInfo(backupSavePath));
 		} else {
 			m_model->insertRow(0, QFileInfo(backupSavePath));
 		}
