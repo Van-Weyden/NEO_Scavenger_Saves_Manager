@@ -92,6 +92,9 @@ MainWindow::MainWindow(QWidget *parent)
 	} else {
 		scanSaves();
 	}
+
+	ui->tableView_saves->horizontalHeader()->setSortIndicator(1, Qt::DescendingOrder);
+	ui->tableView_saves->setSortingEnabled(true);
 }
 
 MainWindow::~MainWindow()

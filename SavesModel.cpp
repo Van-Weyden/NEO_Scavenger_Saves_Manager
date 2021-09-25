@@ -1,3 +1,6 @@
+#include <algorithm>
+
+#include <QCollator>
 #include <QDir>
 #include <QFileInfoList>
 
@@ -178,6 +181,40 @@ bool SavesModel::setData(const QModelIndex &index, const QVariant &value, int ro
 	}
 
 	return isDataChanged;
+}
+
+void SavesModel::sort(int column, Qt::SortOrder order)
+{
+	emit layoutAboutToBeChanged();
+
+	switch (column) {
+		case 0: {
+			QCollator collator;
+			collator.setNumericMode(true);
+
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order, &collator](const SaveInfo &first, const SaveInfo &second) {
+				return (collator.compare(first.name, second.name) * (order == Qt::SortOrder::DescendingOrder ? 1 : -1) > 0);
+			});
+		}
+		break;
+
+		case 1:
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order](const SaveInfo &first, const SaveInfo &second){
+				return (first.backupedDateTime > second.backupedDateTime) ^ (order == Qt::SortOrder::AscendingOrder);
+			});
+		break;
+
+		case 2:
+			std::sort(m_savesInfo.begin(), m_savesInfo.end(),
+					  [order](const SaveInfo &first, const SaveInfo &second){
+				return (first.createdDateTime > second.createdDateTime) ^ (order == Qt::SortOrder::AscendingOrder);
+			});
+		break;
+	}
+
+	emit layoutChanged();
 }
 
 QVariant SavesModel::headerData(int section, Qt::Orientation orientation, int role) const
