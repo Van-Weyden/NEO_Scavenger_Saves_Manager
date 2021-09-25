@@ -59,37 +59,37 @@
         <translation>Создать сохранение с именем:</translation>
     </message>
     <message>
-        <location filename="MainWindow.ui" line="176"/>
+        <location filename="MainWindow.ui" line="179"/>
         <source>Backup</source>
         <translation>Создать</translation>
     </message>
     <message>
-        <location filename="MainWindow.ui" line="187"/>
+        <location filename="MainWindow.ui" line="190"/>
         <source>Quick save</source>
         <translation>Быстрое сохранение</translation>
     </message>
     <message>
-        <location filename="MainWindow.ui" line="194"/>
+        <location filename="MainWindow.ui" line="197"/>
         <source>Restore last quick save</source>
         <translation>Загрузить последнее быстрое сохранение</translation>
     </message>
     <message>
-        <location filename="MainWindow.ui" line="241"/>
+        <location filename="MainWindow.ui" line="244"/>
         <source>Restore selected save</source>
         <translation>Загрузить выбранное сохранение</translation>
     </message>
     <message>
-        <location filename="MainWindow.ui" line="248"/>
+        <location filename="MainWindow.ui" line="251"/>
         <source>Delete selected save</source>
         <translation>Удалить выбранное сохранение</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="219"/>
+        <location filename="MainWindow.cpp" line="225"/>
         <source>Failed to find saves data folder</source>
         <translation>Не удалось найти папку сохранений игры</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="220"/>
+        <location filename="MainWindow.cpp" line="226"/>
         <source>Failed to find saves data folder!
 Specify the location of the save folder manually.
 You also may try start the game, exit from it and then repeat the search.</source>
@@ -101,14 +101,19 @@ You also may try start the game, exit from it and then repeat the search.</sourc
 <context>
     <name>SavesModel</name>
     <message>
-        <location filename="SavesModel.cpp" line="158"/>
+        <location filename="SavesModel.cpp" line="225"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="SavesModel.cpp" line="159"/>
-        <source>Last modify</source>
-        <translation>Изменён</translation>
+        <location filename="SavesModel.cpp" line="226"/>
+        <source>Backuped</source>
+        <translation>Сохранён</translation>
+    </message>
+    <message>
+        <location filename="SavesModel.cpp" line="227"/>
+        <source>Created by game</source>
+        <translation>Создан игрой</translation>
     </message>
 </context>
 </TS>
