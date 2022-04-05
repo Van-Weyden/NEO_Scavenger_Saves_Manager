@@ -112,7 +112,7 @@ MainWindow::~MainWindow()
 bool MainWindow::backupSave(const QString &backupSaveName)
 {
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
+	QString savesDirPath = gameDataFolderPath + SavesDirName + "/";
 	QString backupSavePath = savesDirPath + backupSaveName + SavesModel::SavesExtension;
 
 	if (gameDataFolderPath.isEmpty() || backupSaveName.isEmpty()) {
@@ -126,7 +126,7 @@ bool MainWindow::backupSave(const QString &backupSaveName)
 	}
 
 	if (!QDir(savesDirPath).exists()) {
-		QDir(gameDataFolderPath).mkdir("saves");
+		QDir(gameDataFolderPath).mkdir(SavesDirName);
 	}
 
 	if ((!QFile::exists(backupSavePath) || QFile::remove(backupSavePath)) && saveFile.copy(backupSavePath)) {
@@ -147,7 +147,7 @@ bool MainWindow::backupSave(const QString &backupSaveName)
 void MainWindow::restoreSave(const QString &backupSaveName)
 {
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
+	QString savesDirPath = gameDataFolderPath + SavesDirName + "/";
 	QFile backupFile(savesDirPath + backupSaveName + SavesModel::SavesExtension);
 
 	if (!gameDataFolderPath.isEmpty() && QDir(savesDirPath).exists() && backupFile.exists()) {
@@ -177,7 +177,7 @@ void MainWindow::backupQuickSave()
 {
 	int quicksavesCount = ui->spinBox_quicksavesCount->value();
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
+	QString savesDirPath = gameDataFolderPath + SavesDirName + "/";
 
 	if (quicksavesCount > 0 && !gameDataFolderPath.isEmpty()) {
 		m_lastQuicksaveIndex++;
@@ -256,11 +256,12 @@ void MainWindow::restoreSelectedSave()
 void MainWindow::deleteSelectedSave()
 {
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QString savesDirPath = gameDataFolderPath + "saves/";
+	QString savesDirPath = gameDataFolderPath + SavesDirName + "/";
 	QModelIndex currentIndex = ui->tableView_saves->selectionModel()->currentIndex();
 
 	if (!gameDataFolderPath.isEmpty() && QDir(savesDirPath).exists() && currentIndex.isValid()) {
-		QFile::remove(savesDirPath + m_model->data(m_model->index(currentIndex.row(), 0)).toString() + SavesModel::SavesExtension);
+		QFile::remove(savesDirPath + m_model->data(m_model->index(currentIndex.row(), 0)).toString() +
+													SavesModel::SavesExtension);
 		m_model->removeRow(currentIndex.row());
 	}
 }
@@ -323,10 +324,11 @@ void MainWindow::scanSaves()
 	m_model->clear();
 
 	QString gameDataFolderPath = ui->lineEdit_gameDataFolderPath->text();
-	QDir savesDir = gameDataFolderPath + "saves/";
+	QDir savesDir = gameDataFolderPath + SavesDirName + "/";
 
 	if (!gameDataFolderPath.isEmpty() && savesDir.exists()) {
-		QFileInfoList savesFiles = savesDir.entryInfoList(QStringList() << "*.sol", QDir::Files, QDir::Time/* | QDir::Reversed*/);
+		QFileInfoList savesFiles = savesDir.entryInfoList(QStringList() << QString("*") + SavesModel::SavesExtension,
+														  QDir::Files, QDir::Time/* | QDir::Reversed*/);
 		m_model->fill(savesFiles);
 	}
 }

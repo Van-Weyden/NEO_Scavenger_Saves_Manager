@@ -44,6 +44,7 @@ public:
 	static constexpr const char *AutosavePrefix = "autosave_";
 	static constexpr const char *QuicksavePrefix = "quicksave_";
 	static constexpr const char *GameSaveFileName = "nsSGv1.sol";
+	static constexpr const char *SavesDirName = "saves";
 
 
 	MainWindow(QWidget *parent = nullptr);
